@@ -1,15 +1,25 @@
 (function (exports) {
   "use strict";
 
-  function $(sel, el) {
-    return (el || document).querySelector(sel);
+  /**
+   *
+   * @param {string} sel
+   * @param {(Document | HTMLElement )} el
+   * @returns {HTMLElement}
+   */
+  function $(sel, el = document) {
+    return el.querySelector(sel);
   }
 
-  /*
-  function $$(sel, el) {
-    return (el || document).querySelectorAll(sel);
+  /**
+   *
+   * @param {string} sel
+   * @param {(Document | HTMLElement)} el
+   * @returns {Array<HTMLElement>}
+   */
+  function $$(sel, el = document) {
+    return el.querySelectorAll(sel);
   }
-  */
 
   let QRCode = window.QRCode;
 
@@ -20,7 +30,7 @@
     return Math.round(parseFloat(value) * DashDayPass._satoshis);
   };
 
-  DashDayPass.init = async function ({ address, plans }) {
+  DashDayPass.init = async function ({ address, plans, selector }) {
     // TODO pro-rate payments that are between plans
     if (!plans) {
       plans = [
@@ -48,7 +58,7 @@
     if (!isPaid) {
       DashDayPass._listenTxLock({ address, plans });
       onDomReady(function () {
-        DashDayPass.addPaywall({ address, plans });
+        DashDayPass.addPaywall({ address, plans, selector });
       });
     }
   };
@@ -197,49 +207,51 @@
   };
 
   DashDayPass._position = "";
-  DashDayPass.addPaywall = function ({ address, plans }) {
-    let $body = $("body");
+  DashDayPass.addPaywall = function ({ address, plans, selector }) {
+    let $els = $$(selector);
     let plan = plans[0];
     let payment = plans[0].amount;
-
-    DashDayPass._position = $body.style.position;
-    $body.style.position = "fixed";
-    $body.insertAdjacentHTML(
-      "beforeend",
-      `
-					<div
-            class="js-paywall"
-            style="
-              position: fixed;
-              bottom: 0px;
-              left: 0px;
+    $els.forEach((el) => {
+      el.style.position = "relative";
+      el.insertAdjacentHTML(
+        "beforeend",
+        `
+        <div
+          class="daypass-container"
+          style="
+              top: 0;
+              position: absolute;
               width: 100%;
-              height: 50%;
+              height: 100%;
               background-color: rgba(0,0,0,0.2);
               backdrop-filter: blur(5px);
             "
-          >
-            <br />
-            <br />
-            <center>
-              <div style="
+        >
+          <br />
+          <br />
+          <center>
+            <div
+              style="
                 background-color: white;
                 border: dashed 2px green;
                 width: 90%;
                 color: #333333;
-              ">
-                Unlock this content for just Đ${payment}.
-                <br />
-                Send Dash to:
-                <br />
-                ${plan.svg}
-                <br />
-                <a href="${plan.dashUri}">${plan.dashUri}</a>
-              </div>
-            </center>
-          </div>
-				`
-    );
+              "
+            >
+              Unlock this content for just Đ${payment}.
+              <br />
+              Send Dash to:
+              <br />
+              ${plan.svg}
+              <br />
+              <a href="${plan.dashUri}">${plan.dashUri}</a>
+            </div>
+          </center>
+        </div>
+      `
+      );
+    });
+    DashDayPass._position = $body.style.position;
   };
 
   DashDayPass.removePaywall = function () {
